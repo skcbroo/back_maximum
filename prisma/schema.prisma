@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id                Int       @id @default(autoincrement())
+  nome              String
+  email             String    @unique
+  senha             String
+  role              String    @default("cliente") // "admin" ou "cliente"
+  pedidos           Pedido[]
+  cotas             Cota[]
+
+  // Recuperação de senha
+  tokenRecuperacao  String?
+  tokenExpira       DateTime?
+
+  // Verificação de e-mail
+  emailVerificado   Boolean   @default(false)
+  tokenVerificacao  String?
+}
+
+model CreditoJudicial {
+  id                   Int       @id @default(autoincrement())
+  valor                Float
+  area                 String
+  fase                 String
+  materia              String
+  desagio              Float
+  preco                Float
+  numeroProcesso       String?
+  descricao            String?
+  adquirido            Boolean   @default(false)
+  criadoEm             DateTime  @default(now())
+  quantidadeCotas      Int       @default(1)
+  cotasAdquiridas      Int       @default(0)
+  status               String    @default("disponivel")
+  dataEstimadaPagamento DateTime? // ✅ nova coluna para projeção
+  cotas                Cota[]
+}
+
+model Pedido {
+  id        Int      @id @default(autoincrement())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
+  criadoEm  DateTime @default(now())
+}
+
+model Cota {
+  id                Int              @id @default(autoincrement())
+  usuario           Usuario          @relation(fields: [usuarioId], references: [id])
+  usuarioId         Int
+  creditoJudicial   CreditoJudicial  @relation(fields: [creditoJudicialId], references: [id], onDelete: Cascade)
+  creditoJudicialId Int
+  quantidade        Int
+  criadoEm          DateTime         @default(now())
+
+  dataAquisicao     DateTime?        // ✅ nova coluna: quando a cota foi adquirida
+  dataPagamentoReal DateTime?        // ✅ nova coluna: quando foi efetivamente paga
+
+  @@unique([usuarioId, creditoJudicialId])
+}
