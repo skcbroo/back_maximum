@@ -8,60 +8,53 @@ datasource db {
 }
 
 model Usuario {
-  id                Int       @id @default(autoincrement())
+  id                Int                @id @default(autoincrement())
   nome              String
-  email             String    @unique
+  email             String             @unique
   senha             String
-  role              String    @default("cliente") // "admin" ou "cliente"
-  pedidos           Pedido[]
-  cotas             Cota[]
+  role              String             @default("cliente") // "admin" ou "cliente"
 
   // Recuperação de senha
   tokenRecuperacao  String?
   tokenExpira       DateTime?
 
   // Verificação de e-mail
-  emailVerificado   Boolean   @default(false)
+  emailVerificado   Boolean            @default(false)
   tokenVerificacao  String?
+
+  // Relacionamentos
+  aplicacoes        Aplicacao[]
 }
 
-model CreditoJudicial {
-  id                   Int       @id @default(autoincrement())
-  valor                Float
-  area                 String
-  fase                 String
-  materia              String
-  desagio              Float
-  preco                Float
-  numeroProcesso       String?
-  descricao            String?
-  adquirido            Boolean   @default(false)
-  criadoEm             DateTime  @default(now())
-  quantidadeCotas      Int       @default(1)
-  cotasAdquiridas      Int       @default(0)
-  status               String    @default("disponivel")
-  dataEstimadaPagamento DateTime? // ✅ nova coluna para projeção
-  cotas                Cota[]
+model ProdutoAplicacao {
+  id            Int        @id @default(autoincrement())
+  nome          String     // Ex: "Renda Fixa 6M", "Renda Fixa 12M"
+  descricao     String?    // Detalhar ativos colateralizados, regras etc.
+  taxaMensal    Float      // Ex: 0.02 (2% ao mês)
+  prazoMeses    Int        // Duração da aplicação em meses
+  ativo         Boolean    @default(true) // se está disponível para clientes
+
+  criadoEm      DateTime   @default(now())
+  aplicacoes    Aplicacao[]
 }
 
-model Pedido {
-  id        Int      @id @default(autoincrement())
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
-  usuarioId Int
-  criadoEm  DateTime @default(now())
-}
-
-model Cota {
+model Aplicacao {
   id                Int              @id @default(autoincrement())
   usuario           Usuario          @relation(fields: [usuarioId], references: [id])
   usuarioId         Int
-  creditoJudicial   CreditoJudicial  @relation(fields: [creditoJudicialId], references: [id], onDelete: Cascade)
-  creditoJudicialId Int
-  quantidade        Int
-  criadoEm          DateTime         @default(now())
+  produto           ProdutoAplicacao @relation(fields: [produtoId], references: [id])
+  produtoId         Int
 
-  dataAquisicao     DateTime?        // ✅ nova coluna: quando a cota foi adquirida
-  dataPagamentoReal DateTime?        // ✅ nova coluna: quando foi efetivamente paga
+  valorAplicado     Float
+  dataInicio        DateTime @default(now())
+  dataFim           DateTime // calculado = dataInicio + prazoMeses do produto
 
-  @@unique([usuarioId, creditoJudicialId])
+  // Status
+  status            String   @default("ativa") // ativa, finalizada, resgatada
+
+  // Cache / projeções
+  rendimentoTotal   Float?   // opcional: cache de rendimento até o fim
+  valorResgate      Float?   // opcional: principal + rendimento esperado
+
+  criadoEm          DateTime @default(now())
 }
