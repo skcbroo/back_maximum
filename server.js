@@ -123,7 +123,16 @@ app.post('/api/auth/login', async (req, res) => {
     process.env.JWT_SECRET
   );
 
-  res.json({ token, role: usuario.role });
+  // 👇 Aqui já mandamos o nome
+  res.json({
+    token,
+    role: usuario.role,
+    user: {
+      id: usuario.id,
+      nome: usuario.nome,
+      email: usuario.email
+    }
+  });
 });
 
 
@@ -1029,6 +1038,7 @@ app.get('/', (req, res) => {
 // Iniciar servidor
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+
 
 
 
