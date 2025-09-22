@@ -251,20 +251,28 @@ app.patch("/api/aplicacoes/:id/status", ensureAuthenticated, ensureAdmin, async 
 
 // Projeção mensal do usuário
 app.get("/api/projecao/mensal", ensureAuthenticated, async (req, res) => {
-  const apps = await prisma.aplicacao.findMany({ where: { usuarioId: req.user.id }, include: { produto: true } });
+  const apps = await prisma.aplicacao.findMany({
+    where: { usuarioId: req.user.id },
+    include: { produto: true }
+  });
+
   const buckets = {};
   for (const a of apps) {
     for (let m = 0; m <= a.produto.prazoMeses; m++) {
       const dataMes = addMonths(a.dataInicio, m);
       if (isBefore(a.dataFim, dataMes)) break;
-      const valor = a.valorAplicado * Math.pow(1 + a.produto.taxaMensal, m);
+
+      const valor = a.valorAplicado + (a.valorAplicado * a.produto.taxaMensal * m);
+
       const key = format(dataMes, "MMM/yyyy", { locale: ptBR });
       buckets[key] = (buckets[key] || 0) + valor;
     }
   }
+
   const lista = Object.entries(buckets).map(([mes, valor]) => ({ mes, valor }));
   res.json({ projecaoMensal: lista });
 });
+
 
 // === DASHBOARD ADMIN ===
 app.get("/api/admin/dashboard", ensureAuthenticated, ensureAdmin, async (req, res) => {
@@ -283,4 +291,5 @@ app.get("/", (req, res) => {
 // === START ===
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+
 
