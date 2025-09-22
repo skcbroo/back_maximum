@@ -212,14 +212,24 @@ app.post("/api/aplicacoes", ensureAuthenticated, async (req, res) => {
 
 // Listar aplicações do usuário
 app.get("/api/aplicacoes", ensureAuthenticated, async (req, res) => {
-  const apps = await prisma.aplicacao.findMany({ where: { usuarioId: req.user.id }, include: { produto: true } });
-  const enriquecido = apps.map((a) => {
-    const fator = Math.pow(1 + a.produto.taxaMensal, a.produto.prazoMeses);
-    const valorResgate = a.valorAplicado * fator;
-    return { ...a, valorResgatePrevisto: valorResgate, rendimentoPrevisto: valorResgate - a.valorAplicado };
+  const apps = await prisma.aplicacao.findMany({
+    where: { usuarioId: req.user.id },
+    include: { produto: true }
   });
+
+  const enriquecido = apps.map((a) => {
+    const rendimento = a.valorAplicado * a.produto.taxaMensal * a.produto.prazoMeses;
+    const valorResgate = a.valorAplicado + rendimento;
+    return {
+      ...a,
+      valorResgatePrevisto: valorResgate,
+      rendimentoPrevisto: rendimento
+    };
+  });
+
   res.json(enriquecido);
 });
+
 
 // Obter um produto específico por ID (público)
 app.get("/api/produtos/:id", async (req, res) => {
@@ -291,5 +301,6 @@ app.get("/", (req, res) => {
 // === START ===
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+
 
 
