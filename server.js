@@ -221,6 +221,26 @@ app.get("/api/aplicacoes", ensureAuthenticated, async (req, res) => {
   res.json(enriquecido);
 });
 
+// Obter um produto específico por ID (público)
+app.get("/api/produtos/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const produto = await prisma.produtoAplicacao.findUnique({
+      where: { id },
+    });
+
+    if (!produto) {
+      return res.status(404).json({ erro: "Produto não encontrado" });
+    }
+
+    res.json(produto);
+  } catch (err) {
+    console.error("Erro ao buscar produto:", err);
+    res.status(500).json({ erro: "Erro ao buscar produto" });
+  }
+});
+
+
 // Alterar status (admin)
 app.patch("/api/aplicacoes/:id/status", ensureAuthenticated, ensureAdmin, async (req, res) => {
   const { id } = req.params;
@@ -263,3 +283,4 @@ app.get("/", (req, res) => {
 // === START ===
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+
